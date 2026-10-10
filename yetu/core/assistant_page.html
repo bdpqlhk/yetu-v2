@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>代理配置助手 · 野兔</title>
+<style>
+:root{
+  --bg:#171a1f; --card:#1b1f26; --line:#2a2f38; --text:#e6e8eb; --text2:#9aa3ad;
+  --blue:#2e70ef; --green:#4ade80; --red:#f87171; --ok-bg:#16321f; --ok-line:#1f5c35;
+  --bad-bg:#3a1518; --bad-line:#6b2429;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+  padding:16px;max-width:560px;margin:0 auto;font-size:16px;line-height:1.6}
+.header{display:flex;align-items:center;gap:10px;padding:4px 2px 16px}
+.header .logo{font-size:26px}
+.header h1{font-size:20px;font-weight:700}
+.header .sub{font-size:12px;color:var(--text2)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:16px;margin-bottom:14px}
+.card h2{font-size:15px;color:var(--text2);font-weight:600;margin-bottom:12px}
+.pill{display:inline-flex;align-items:center;gap:8px;border-radius:20px;
+  padding:8px 16px;font-weight:600;font-size:15px}
+.pill.ok{background:var(--ok-bg);color:var(--green);border:1px solid var(--ok-line)}
+.pill.bad{background:var(--bad-bg);color:var(--red);border:1px solid var(--bad-line)}
+.pill .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.status-sub{margin-top:10px;font-size:13px;color:var(--text2)}
+.addr-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.addr{flex:1;background:#14171c;border:1px solid var(--line);border-radius:10px;
+  padding:12px 14px;font-family:Menlo,Consolas,monospace;font-size:18px;
+  color:#4f8af7;user-select:all;-webkit-user-select:all}
+.copy{flex-shrink:0;background:var(--blue);color:#fff;border:none;border-radius:10px;
+  padding:12px 18px;font-size:15px;font-weight:600}
+.copy:active{opacity:.8}
+.copy.all{width:100%;padding:14px;font-size:16px}
+ol{padding-left:22px}
+ol li{margin-bottom:10px}
+ol b{color:#4f8af7;font-family:Menlo,Consolas,monospace;font-size:17px}
+.tip{font-size:13px;color:var(--text2)}
+.tip b{color:var(--text)}
+.footer{text-align:center;color:#5f6980;font-size:12px;padding:8px 0 24px}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">🐇</div>
+  <div><h1>代理配置助手</h1><div class="sub">手机抓包 · 扫码即达</div></div>
+</div>
+
+<div class="card">
+  <h2>抓包服务状态</h2>
+  <div id="status" class="pill bad"><span class="dot"></span>检测中…</div>
+  <div class="status-sub">检测电脑 <b>__HOST__:__PORT__</b> 是否有抓包服务在监听,每 5 秒自动刷新</div>
+</div>
+
+<div class="card">
+  <h2>代理地址</h2>
+  <div class="addr-row">
+    <div class="addr" id="host">__HOST__</div>
+    <button class="copy" data-label="复制 IP" onclick="copyText('__HOST__',this)">复制 IP</button>
+  </div>
+  <div class="addr-row">
+    <div class="addr" id="port">__PORT__</div>
+    <button class="copy" data-label="复制端口" onclick="copyText('__PORT__',this)">复制端口</button>
+  </div>
+  <button class="copy all" data-label="复制完整地址 IP:端口"
+          onclick="copyText('__HOST__:__PORT__',this)">复制完整地址 __HOST__:__PORT__</button>
+</div>
+
+__STEPS__
+
+<div class="card">
+  <h2>注意事项</h2>
+  <div class="tip">
+    · 手机与电脑必须连<b>同一个 Wi-Fi</b><br>
+    · 电脑抓包工具需勾选「允许局域网连接」(Charles: Proxy → Access Control / macOS 需允许入站)<br>
+    · <b>抓完记得关闭代理</b>,否则断开电脑后手机会上不了网<br>
+    · HTTPS 抓包需在手机上安装并信任对应证书(Charles: chls.pro/ssl;iPhone 安装后还需 设置→通用→关于本机→证书信任设置 里开启)
+  </div>
+</div>
+
+<div class="footer">野兔 v2 · 代理配置助手</div>
+
+<script>
+function copyText(text, btn){
+  var done = function(ok){
+    var old = btn.dataset.label;
+    btn.textContent = ok ? '已复制 ✓' : '请长按地址复制';
+    setTimeout(function(){ btn.textContent = old; }, 1200);
+  };
+  if (navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(text).then(function(){done(true)}, function(){fallback()});
+  } else { fallback(); }
+  function fallback(){
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus(); ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch(e){}
+    document.body.removeChild(ta);
+    done(ok);
+  }
+}
+function refresh(){
+  fetch('/api/status', {cache:'no-store'})
+    .then(function(r){ return r.json(); })
+    .then(function(s){
+      var el = document.getElementById('status');
+      if (s.listening){
+        el.className = 'pill ok';
+        el.innerHTML = '<span class="dot"></span>抓包服务在线 · ' + s.host + ':' + s.port;
+      } else {
+        el.className = 'pill bad';
+        el.innerHTML = '<span class="dot"></span>未检测到抓包服务 · 请确认电脑端已启动';
+      }
+    })
+    .catch(function(){});
+}
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>
