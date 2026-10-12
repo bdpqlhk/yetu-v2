@@ -70,6 +70,15 @@ class _ThreadingHTTPServer(socketserver.ThreadingMixIn, http.server.HTTPServer):
     allow_reuse_address = True
     daemon_threads = True
 
+    def server_bind(self) -> None:
+        """跳过 HTTPServer.server_bind 中的 socket.getfqdn() 反向 DNS 查询 ——
+        在无反向解析的网络(部分内网 / CI runner)会阻塞 30 秒以上,
+        导致配置助手迟迟不可用。本服务不需要 server_name 的 FQDN,直接用 IP。"""
+        socketserver.TCPServer.server_bind(self)
+        host, port = self.server_address[:2]
+        self.server_name = host
+        self.server_port = port
+
     def handle_error(self, request, client_address):
         pass  # 客户端断开等噪音
 
