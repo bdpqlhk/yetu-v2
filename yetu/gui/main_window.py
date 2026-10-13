@@ -12,9 +12,10 @@ import sys
 from datetime import datetime
 
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QAction, QKeySequence, QTextCursor
+from PyQt6.QtGui import QAction, QColor, QFont, QIcon, QKeySequence, QPainter, QPixmap, QTextCursor
 from PyQt6.QtWidgets import (
     QApplication, QComboBox, QDockWidget, QFrame, QHBoxLayout, QLabel,
+    QMenu, QSystemTrayIcon,
     QMainWindow, QMessageBox, QPlainTextEdit, QPushButton, QStatusBar,
     QTabWidget, QVBoxLayout, QWidget,
 )
@@ -59,6 +60,10 @@ class MainWindow(QMainWindow):
         self._build_log_dock()
         self._build_statusbar()
         self._build_menus()
+        self._build_tray()
+
+        self._really_quitting = False
+        self._tray_tip_shown = False
 
         self._update_tool_label()
         QTimer.singleShot(300, self.refresh_devices)
@@ -140,7 +145,9 @@ class MainWindow(QMainWindow):
         act_refresh.setShortcut(QKeySequence.StandardKey.Refresh)
         act_refresh.triggered.connect(self.refresh_devices)
         m_file.addAction(act_refresh)
-        m_file.addAction("退出", self.close)
+        act_quit = QAction("退出", self)
+        act_quit.triggered.connect(self.real_quit)  # 真正退出;点窗口 ✗ 是收到托盘
+        m_file.addAction(act_quit)
 
         m_view = self.menuBar().addMenu("视图")
         m_view.addAction(self._log_dock.toggleViewAction())
@@ -258,12 +265,86 @@ class MainWindow(QMainWindow):
         mark(self._adb_chip, "adb", bool(status["adb"]))
         mark(self._hdc_chip, "hdc", bool(status["hdc"]))
 
+    # ------------------------------------------------------------------ #
+    # 托盘(Tray):关窗默认收到这里,配置助手等服务继续运行;菜单「退出」才真正退出
+    # ------------------------------------------------------------------ #
+    def _build_tray(self) -> None:
+        self._tray = QSystemTrayIcon(QIcon(self._render_tray_icon()), self)
+        self._tray.setToolTip("野兔 v2")
+
+        menu = QMenu()
+        act_show = QAction("显示主窗口", self)
+        act_show.triggered.connect(self._show_from_tray)
+        act_refresh = QAction("刷新设备", self)
+        act_refresh.triggered.connect(self.refresh_devices)
+        act_quit = QAction("退出", self)
+        act_quit.triggered.connect(self.real_quit)
+        menu.addAction(act_show)
+        menu.addAction(act_refresh)
+        menu.addSeparator()
+        menu.addAction(act_quit)
+        self._tray.setContextMenu(menu)
+        self._tray.activated.connect(self._on_tray_activated)
+        self._tray.show()
+
+    def _render_tray_icon(self) -> QPixmap:
+        """菜单栏图标:绿色渐变圆角底 + 白色「兔」字,与品牌一致,无需外部文件。"""
+        size = 64
+        pm = QPixmap(size, size)
+        pm.fill(Qt.GlobalColor.transparent)
+        p = QPainter(pm)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        from PyQt6.QtGui import QLinearGradient
+        grad = QLinearGradient(0, 0, size, size)
+        grad.setColorAt(0.0, QColor("#22c55e"))
+        grad.setColorAt(1.0, QColor("#16a34a"))
+        p.setBrush(grad)
+        p.setPen(Qt.PenStyle.NoPen)
+        m = size * 0.10
+        p.drawRoundedRect(int(m), int(m), int(size - 2 * m), int(size - 2 * m),
+                          int(size * 0.22), int(size * 0.22))
+        font = QFont("PingFang SC")
+        font.setBold(True)
+        font.setPixelSize(int(size * 0.52))
+        p.setFont(font)
+        p.setPen(QColor("#ffffff"))
+        p.drawText(pm.rect(), Qt.AlignmentFlag.AlignCenter, "兔")
+        p.end()
+        return pm
+
+    def _on_tray_activated(self, reason) -> None:
+        if reason in (QSystemTrayIcon.ActivationReason.Trigger,
+                      QSystemTrayIcon.ActivationReason.DoubleClick):
+            self._show_from_tray()
+
+    def _show_from_tray(self) -> None:
+        self.show()
+        self.raise_()
+        self.activateWindow()
+
+    def real_quit(self) -> None:
+        """真正退出(Tray 菜单 / 文件菜单「退出」)。"""
+        self._really_quitting = True
+        self.close()
+
     def closeEvent(self, event) -> None:  # noqa: N802 (Qt 命名)
-        """退出前回收后台服务(如配置助手)。"""
-        for panel in self._panels:
-            if hasattr(panel, "on_close"):
-                panel.on_close()
-        super().closeEvent(event)
+        if self._really_quitting or not self._tray.isVisible():
+            # 退出前回收后台服务(如配置助手)
+            for panel in self._panels:
+                if hasattr(panel, "on_close"):
+                    panel.on_close()
+            self._tray.hide()
+            event.accept()
+            return
+        # 点窗口 ✗:收到菜单栏,配置助手等服务继续运行
+        event.ignore()
+        self.hide()
+        if not self._tray_tip_shown:
+            self._tray_tip_shown = True
+            self._tray.showMessage(
+                "野兔 v2 仍在运行",
+                "窗口已收到菜单栏。点菜单栏图标可重新打开;退出请用其菜单中的「退出」。",
+                QSystemTrayIcon.MessageIcon.Information, 5000)
 
 
 def launch() -> int:

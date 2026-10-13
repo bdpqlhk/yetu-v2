@@ -124,15 +124,33 @@ def main() -> int:
         path = sys.argv[i + 1] if len(sys.argv) > i + 1 else "/tmp/yetu-v2.png"
         return run_screenshot(path)
 
+    from PyQt6.QtCore import QEvent, Qt
     from PyQt6.QtWidgets import QApplication
 
     from yetu.gui.main_window import MainWindow, QSS
 
     _install_excepthook()
-    app = QApplication(sys.argv)
+
+    class YetoApp(QApplication):
+        """macOS:主窗口收到托盘后,点 Dock 图标重新打开。"""
+        mainwin = None
+
+        def event(self, e):
+            if (e.type() == QEvent.Type.ApplicationStateChange
+                    and self.applicationState() == Qt.ApplicationState.ApplicationActive
+                    and sys.platform == "darwin"):
+                w = YetoApp.mainwin
+                if w is not None and not w.isVisible():
+                    w.show()
+                    w.raise_()
+                    w.activateWindow()
+            return super().event(e)
+
+    app = YetoApp(sys.argv)
     app.setApplicationName("野兔v2")
     app.setStyleSheet(QSS)
     win = MainWindow()
+    YetoApp.mainwin = win
     win.show()
     return app.exec()
 
