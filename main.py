@@ -78,12 +78,19 @@ def run_screenshot(path: str) -> int:
 def _smoke() -> int:
     """无头自检:配置助手起服务 -> 请求 /proxy 与 /api/status -> 停止。"""
     import json
+    import socket
     import time
     import urllib.request
 
     from yetu.core.assistant import ProxyAssistant
 
-    ast = ProxyAssistant(proxy_host="127.0.0.1", proxy_port=18888, serve_port=18770)
+    probe = socket.socket()
+    probe.bind(("127.0.0.1", 0))
+    serve_port = probe.getsockname()[1]
+    probe.close()
+
+    ast = ProxyAssistant(proxy_host="127.0.0.1", proxy_port=18888,
+                         serve_port=serve_port)
     ast.start()
     ok = False
     deadline = time.time() + 10
@@ -92,10 +99,12 @@ def _smoke() -> int:
             break
     if not ast.last_error:
         try:
-            with urllib.request.urlopen("http://127.0.0.1:18770/proxy", timeout=3) as r:
+            with urllib.request.urlopen(
+                    f"http://127.0.0.1:{serve_port}/proxy", timeout=3) as r:
                 body = r.read().decode("utf-8")
                 ok = r.status == 200 and "代理配置助手" in body
-            with urllib.request.urlopen("http://127.0.0.1:18770/api/status", timeout=3) as r:
+            with urllib.request.urlopen(
+                    f"http://127.0.0.1:{serve_port}/api/status", timeout=3) as r:
                 status = json.loads(r.read().decode("utf-8"))
                 ok = ok and status["port"] == 18888 and status["listening"] is False
         except Exception:

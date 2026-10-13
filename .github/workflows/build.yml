@@ -1,0 +1,80 @@
+name: build
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            artifact: 野兔v2-macOS
+          - os: windows-latest
+            artifact: 野兔v2-Windows
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Source smoke test
+        run: python main.py --smoke
+
+      - name: Build
+        run: pyinstaller 野兔v2.spec --noconfirm --clean
+
+      - name: Smoke test (frozen app)
+        shell: bash
+        run: |
+          if [ -d "dist/野兔v2.app" ]; then
+            "dist/野兔v2.app/Contents/MacOS/野兔v2" --smoke
+          else
+            "dist/野兔v2.exe" --smoke
+          fi
+
+      - name: Package artifact (zip)
+        shell: bash
+        run: |
+          VER="${GITHUB_REF_NAME}"
+          if [ -d "dist/野兔v2.app" ]; then
+            cd dist && zip -r -y "野兔v2-${VER}-macOS.zip" "野兔v2.app"
+          else
+            cd dist && 7z a "野兔v2-${VER}-Windows.zip" "野兔v2.exe" || cp "野兔v2.exe" "野兔v2-${VER}-Windows.exe"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            dist/*.zip
+            dist/*.exe
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: artifacts
+
+      - name: Attach to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: artifacts/*
