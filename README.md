@@ -8,7 +8,7 @@
 
 - 版本: 2.0.0
 - 界面: **PyQt6**(v1 为 Tkinter,本版重写),深色开发者工具风格(**样式参考 TCode GUI**)
-- 打包: PyInstaller,`sh build.sh` → `dist/野兔v2.app`(macOS)
+- 打包: PyInstaller,`sh build.sh` → `dist/yetu-v2.app`(macOS)
 
 ---
 
@@ -26,7 +26,7 @@
 
 ```
 main.py                    入口(--selftest 自检 / --screenshot 截图 / 启动 GUI)
-野兔v2.spec                PyInstaller 打包配置(内置 tools/,图标)
+yetu-v2.spec                PyInstaller 打包配置(内置 tools/,图标)
 build.sh                   一键打包
 yetu/
 ├── core/                  ← 复用 v1,零改动
@@ -65,15 +65,15 @@ python3 main.py                    # 开发运行
 python3 main.py --selftest         # 自检(不弹界面):内置工具/面板/设备
 python3 main.py --smoke            # 无头自检:配置助手起服务 -> 请求配置页 -> 停止
 python3 main.py --screenshot s.png # 无头渲染截图(offscreen)
-sh build.sh                        # 打包 → dist/野兔v2.app(含 frozen 冒烟)
+sh build.sh                        # 打包 → dist/yetu-v2.app(含 frozen 冒烟)
 ```
 
 打包要点:
 
-- `野兔v2.spec` 里 `datas`:把 `tools/`(adb/hdc 及其库)与配置助手页面
+- `yetu-v2.spec` 里 `datas`:把 `tools/`(adb/hdc 及其库)与配置助手页面
   `yetu/core/assistant_page.html` 一并打进包;工具路径由 `yetu/core/env.py` 定位。
 - macOS 产物 adhoc 签名,本机直接可跑;分发到别的机器如遇 Gatekeeper 拦截:
-  `xattr -dr com.apple.quarantine dist/野兔v2.app`。
+  `xattr -dr com.apple.quarantine dist/yetu-v2.app`。
 
 ## 四、使用说明
 

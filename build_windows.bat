@@ -1,5 +1,5 @@
 @echo off
-rem 野兔 v2 Windows 打包脚本: 产物 dist\野兔v2.exe (单文件)
+rem 野兔 v2 Windows 打包脚本: 产物 dist\yetu-v2.exe (单文件)
 rem 用法: 双击或在 cmd / PowerShell 里执行  build_windows.bat
 rem 前置: 已安装 Python 3.8+ (勾选 Add to PATH)
 setlocal
@@ -18,14 +18,14 @@ python -c "import PyInstaller" 2>nul || (
   python -m pip install pyinstaller || goto :fail
 )
 
-echo ^>^> 打包 野兔v2.exe ...
-python -m PyInstaller 野兔v2.spec --noconfirm --clean || goto :fail
+echo ^>^> 打包 yetu-v2.exe ...
+python -m PyInstaller yetu-v2.spec --noconfirm --clean || goto :fail
 
 echo ^>^> 冒烟验证打包产物 ...
-"dist\野兔v2.exe" --smoke || goto :fail
+"dist\yetu-v2.exe" --smoke || goto :fail
 
 echo.
-echo [OK] 完成: dist\野兔v2.exe
+echo [OK] 完成: dist\yetu-v2.exe
 exit /b 0
 
 :fail

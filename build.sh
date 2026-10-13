@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # 野兔 v2 打包脚本(PyQt6 + PyInstaller)
-# 产物:dist/野兔v2.app(macOS,自带 tools/adb、tools/hdc)
+# 产物:dist/yetu-v2.app(macOS,自带 tools/adb、tools/hdc)
 set -euo pipefail
 cd "$(dirname "$0")"
 
-NAME="野兔v2"
+NAME="yetu-v2"
 APP="dist/$NAME.app"
 
 echo ">> 使用解释器: $(python3 -c 'import sys; print(sys.executable, sys.version.split()[0])')"
 
 echo ">> 用 PyInstaller 打包 $NAME (内置 tools/) …"
-python3 -m PyInstaller 野兔v2.spec --noconfirm --clean
+python3 -m PyInstaller yetu-v2.spec --noconfirm --clean
 
 echo ""
 echo ">> 冒烟验证打包产物(内置工具 + 配置助手服务) …"

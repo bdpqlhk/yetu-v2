@@ -14,9 +14,9 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            artifact: 野兔v2-macOS
+            artifact: yetu-v2-macOS
           - os: windows-latest
-            artifact: 野兔v2-Windows
+            artifact: yetu-v2-Windows
     steps:
       - uses: actions/checkout@v4
 
@@ -31,25 +31,25 @@ jobs:
         run: python main.py --smoke
 
       - name: Build
-        run: pyinstaller 野兔v2.spec --noconfirm --clean
+        run: pyinstaller yetu-v2.spec --noconfirm --clean
 
       - name: Smoke test (frozen app)
         shell: bash
         run: |
-          if [ -d "dist/野兔v2.app" ]; then
-            "dist/野兔v2.app/Contents/MacOS/野兔v2" --smoke
+          if [ -d "dist/yetu-v2.app" ]; then
+            "dist/yetu-v2.app/Contents/MacOS/yetu-v2" --smoke
           else
-            "dist/野兔v2.exe" --smoke
+            "dist/yetu-v2.exe" --smoke
           fi
 
       - name: Package artifact (zip)
         shell: bash
         run: |
           VER="${GITHUB_REF_NAME}"
-          if [ -d "dist/野兔v2.app" ]; then
-            cd dist && zip -r -y "野兔v2-${VER}-macOS.zip" "野兔v2.app"
+          if [ -d "dist/yetu-v2.app" ]; then
+            cd dist && zip -r -y "yetu-v2-${VER}-macOS.zip" "yetu-v2.app"
           else
-            cd dist && 7z a "野兔v2-${VER}-Windows.zip" "野兔v2.exe" || cp "野兔v2.exe" "野兔v2-${VER}-Windows.exe"
+            cd dist && 7z a "yetu-v2-${VER}-Windows.zip" "yetu-v2.exe" || cp "yetu-v2.exe" "yetu-v2-${VER}-Windows.exe"
           fi
 
       - name: Upload artifact

@@ -1,9 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
 """PyInstaller 打包配置(跨平台):
-    macOS    → dist/野兔v2.app (onedir bundle, 自带 tools/adb、tools/hdc)
-    Windows  → dist/野兔v2.exe (单文件)
+    macOS    → dist/yetu-v2.app (onedir bundle, 自带 tools/adb、tools/hdc)
+    Windows  → dist/yetu-v2.exe (单文件)
 
-用法: pyinstaller 野兔v2.spec --noconfirm --clean
+用法: pyinstaller yetu-v2.spec --noconfirm --clean
 """
 import importlib.util
 import os
@@ -19,7 +19,7 @@ if importlib.util.find_spec("PyQt6") is None:
         "       网络慢可用镜像: -i https://pypi.tuna.tsinghua.edu.cn/simple")
 
 spec_dir = SPECPATH
-NAME = "野兔v2"
+NAME = "yetu-v2"
 
 datas = [
     (os.path.join(spec_dir, "tools"), "tools"),
