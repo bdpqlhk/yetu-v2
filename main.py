@@ -82,6 +82,10 @@ def _smoke() -> int:
     import time
     import urllib.request
 
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+
     from yetu.core.assistant import ProxyAssistant
 
     probe = socket.socket()
